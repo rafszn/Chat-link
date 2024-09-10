@@ -7,10 +7,10 @@ import { IoMdDownload } from "react-icons/io";
 import { PiLinkBold } from "react-icons/pi";
 import { IoMdAttach } from "react-icons/io";
 import { IoDocumentAttachSharp } from "react-icons/io5";
-import { ring2 } from "ldrs";
 import { ToastContainer, Zoom, toast } from "react-toastify";
 import { FaTimes } from "react-icons/fa";
 import axios from "axios";
+import { ring2 } from "ldrs";
 
 ring2.register();
 

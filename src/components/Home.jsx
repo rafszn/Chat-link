@@ -5,10 +5,17 @@ import { ToastContainer } from "react-toastify";
 import OverLay from "./OverLay";
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
+import { ring2 } from "ldrs";
+
+ring2.register();
 
 export default function Home() {
   const [show, setShow] = useState(false);
-  const { mutate: generateFn, data } = useMutation({
+  const {
+    mutate: generateFn,
+    data,
+    isPending,
+  } = useMutation({
     mutationFn: async () => {
       try {
         const response = await axios(
@@ -16,7 +23,7 @@ export default function Home() {
         );
         return response.data;
       } catch (e) {
-        console.log(e.message)
+        console.log(e.message);
         return null;
       }
     },
@@ -51,7 +58,18 @@ export default function Home() {
       </div>
 
       <button onClick={generateFn} className="btn">
-        Generate Chat Link
+        {isPending ? (
+          <l-ring-2
+            size="20"
+            stroke="5"
+            stroke-length="0.25"
+            bg-opacity="0.1"
+            speed="1"
+            color="black"
+          ></l-ring-2>
+        ) : (
+          "Generate Chat Link"
+        )}
       </button>
       <AnimatePresence>
         {show && <OverLay show={setShow} link={data.link} />}
