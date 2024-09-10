@@ -1,22 +1,22 @@
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { PiLinkBold } from "react-icons/pi";
-import { Slide, ToastContainer, Zoom, toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import OverLay from "./OverLay";
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
 
 export default function Home() {
   const [show, setShow] = useState(false);
-  const {
-    mutate: generateFn,
-    data,
-  } = useMutation({
+  const { mutate: generateFn, data } = useMutation({
     mutationFn: async () => {
       try {
-        const response = await axios("http://localhost:3330/create-chat");
+        const response = await axios(
+          `${import.meta.env.VITE_API_URL}/create-chat`,
+        );
         return response.data;
       } catch (e) {
+        console.log(e.message)
         return null;
       }
     },
@@ -26,7 +26,7 @@ export default function Home() {
     },
     onError: (error) => {
       console.error("Error generating chat link:", error.message);
-      setShow(false)
+      setShow(false);
     },
   });
 
