@@ -1,0 +1,74 @@
+import { useMutation } from "@tanstack/react-query";
+import axios from "axios";
+import { PiLinkBold } from "react-icons/pi";
+import { Slide, ToastContainer, Zoom, toast } from "react-toastify";
+import OverLay from "./OverLay";
+import { useState } from "react";
+import { AnimatePresence } from "framer-motion";
+
+export default function Home() {
+  const [show, setShow] = useState(false);
+  const {
+    mutate: generateFn,
+    data,
+  } = useMutation({
+    mutationFn: async () => {
+      try {
+        const response = await axios("http://localhost:3330/create-chat");
+        return response.data;
+      } catch (e) {
+        return null;
+      }
+    },
+    onSuccess: (data) => {
+      console.log("Link generated:", data.link);
+      setShow(true);
+    },
+    onError: (error) => {
+      console.error("Error generating chat link:", error.message);
+      setShow(false)
+    },
+  });
+
+  return (
+    <div className="flex-1 home">
+      <div className="chatlink-wrapper">
+        <div className="chatlink">
+          <PiLinkBold size={25} color="yellow" />
+          <p className="link">Link-chat</p>
+        </div>
+      </div>
+
+      <div className="slogan-wrapper">
+        <p className="slogan">Create, Share, and Chat Instantly</p>
+        <p className="base">
+          Private Conversations, easily shared and instantly connected
+        </p>
+      </div>
+
+      <div className="image-wrapper">
+        <img src="/chat.png" className="chatimg" alt="" />
+      </div>
+
+      <button onClick={generateFn} className="btn">
+        Generate Chat Link
+      </button>
+      <AnimatePresence>
+        {show && <OverLay show={setShow} link={data.link} />}
+      </AnimatePresence>
+      <ToastContainer
+        position="top-right"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        transition:Bounce
+      />
+    </div>
+  );
+}
