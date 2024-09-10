@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import io from "socket.io-client";
 import { BsSend } from "react-icons/bs";
 import { FaFilePdf } from "react-icons/fa6";
@@ -9,16 +9,12 @@ import { IoMdAttach } from "react-icons/io";
 import { IoDocumentAttachSharp } from "react-icons/io5";
 import { ring2 } from "ldrs";
 import { ToastContainer, Zoom, toast } from "react-toastify";
+import { FaTimes } from "react-icons/fa";
+import axios from "axios";
 
 ring2.register();
 
-// Default values shown
-
-import { FaTimes } from "react-icons/fa";
-
-import axios from "axios";
-
-const socket = io("http://localhost:3330", { transports: ["websocket"] });
+const socket = io(import.meta.env.VITE_API_URL, { transports: ["websocket"] });
 
 function ChatRoom() {
   const { roomId } = useParams();
@@ -26,20 +22,53 @@ function ChatRoom() {
   const [input, setInput] = useState("");
   const [name, setName] = useState("");
   const [isNameSet, setIsNameSet] = useState(false);
-  const [notifications, setNotifications] = useState([]);
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState("");
   const lastMessageRef = useRef(null);
   const [loading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isNameSet) {
       socket.emit("join-room", { roomId, name });
 
+      socket.on("error", (error) => {
+        toast.error(error.message, {
+          position: "top-left",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          transition: Zoom,
+        });
+        setTimeout(() => {
+          navigate("/");
+        }, 3200);
+      });
+
+      socket.on("room-deleted", () => {
+        toast.info("Room has been deleted due to inactivity.", {
+          position: "top-left",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          transition: Zoom,
+        });
+        setTimeout(() => {
+          navigate("/");
+        }, 3200);
+      });
+
       socket.on("chat-history", (messages) => setMessages(messages));
       socket.on("chat-message", (messages) => setMessages(messages));
       socket.on("user-joined", (notification) => {
-        setNotifications((prev) => [...prev, notification.message]);
         toast.info(notification.message, {
           position: "top-left",
           autoClose: 5000,
@@ -53,7 +82,17 @@ function ChatRoom() {
         });
       });
       socket.on("user-left", (notification) => {
-        setNotifications((prev) => [...prev, notification.message]);
+        toast.info(notification.message, {
+          position: "top-left",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          transition: Zoom,
+        });
       });
 
       return () => {
@@ -73,7 +112,7 @@ function ChatRoom() {
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [roomId, isNameSet, name]);
+  }, [roomId, isNameSet, name, navigate]);
 
   useEffect(() => {
     if (lastMessageRef.current) {
@@ -93,9 +132,15 @@ function ChatRoom() {
 
         try {
           const { data } = await axios.post(
-            "http://localhost:3330/upload",
+            `${import.meta.env.VITE_API_URL}/upload`,
             formData,
           );
+          if (data) {
+            socket.emit("upload-media", {
+              publicId: data.publicId,
+            });
+          }
+
           fileUrl = data.url;
         } catch (error) {
           console.error("Error uploading file:", error);
@@ -156,14 +201,6 @@ function ChatRoom() {
         </div>
       ) : (
         <div className="inview">
-          {/* <div className="notifications">
-            {notifications.map((note, index) => (
-              <div key={index} className="notification">
-                {note}
-              </div>
-            ))}
-          </div> */}
-
           <div className="messages">
             {messages
               .filter((obj) => {
@@ -193,7 +230,7 @@ function ChatRoom() {
                       }
                     >
                       <a href={msg.file} target="_blank">
-                        <img className="" src={msg.file}></img>
+                        <img className="" src={msg.file} />
                       </a>
                     </div>
                   )}
