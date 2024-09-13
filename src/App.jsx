@@ -3,6 +3,8 @@ import Home from "./components/Home";
 import ChatRoom from "./components/ChatRoom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import VoiceRecorder from "./components/Voice";
+import AudioPlayer from "./components/AudioPlayer";
 
 export default function App() {
   return (
@@ -23,8 +25,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/chat/:roomId" element={<ChatRoom />} />
+        <Route path="voice" element={<AudioPlayer />} />
       </Routes>
-
     </div>
   );
 }

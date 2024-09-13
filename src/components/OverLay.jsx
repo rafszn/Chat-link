@@ -2,7 +2,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { LuCopy } from "react-icons/lu";
 import { FaCheck } from "react-icons/fa6";
 import { useState } from "react";
-import {  ToastContainer } from "react-toastify";
 
 export default function OverLay({ link, show }) {
   const [isCopied, setIsCopied] = useState(false);
@@ -40,7 +39,7 @@ export default function OverLay({ link, show }) {
         <p className="share">Share Link</p>
 
         <div className="link">
-          <a href={link} target="_blank">
+          <a href={link}>
             <input className="input" type="text" value={link} readOnly />
           </a>
           <button className="copy">
@@ -63,19 +62,6 @@ export default function OverLay({ link, show }) {
           )}
         </AnimatePresence>
       </div>
-      <ToastContainer
-        position="top-right"
-        autoClose={2000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-        transition:Bounce
-      />
     </motion.div>
   );
 }

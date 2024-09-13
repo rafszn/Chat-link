@@ -1,7 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { PiLinkBold } from "react-icons/pi";
-import { ToastContainer } from "react-toastify";
 import OverLay from "./OverLay";
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
@@ -27,8 +26,7 @@ export default function Home() {
         return null;
       }
     },
-    onSuccess: (data) => {
-      console.log("Link generated:", data.link);
+    onSuccess: () => {
       setShow(true);
     },
     onError: (error) => {
@@ -74,19 +72,6 @@ export default function Home() {
       <AnimatePresence>
         {show && <OverLay show={setShow} link={data.link} />}
       </AnimatePresence>
-      <ToastContainer
-        position="top-right"
-        autoClose={2000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-        transition:Bounce
-      />
     </div>
   );
 }
