@@ -14,20 +14,21 @@ export const handleTabFocus = (socket, tabId) => {
 export const startRecording = async (
   mediaStreamRef,
   mediaRecorderRef,
-  setAudioBlob,
-  setAudioUrl,
-  setIsRecording,
+  dispatch,
 ) => {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaStreamRef.current = stream;
     mediaRecorderRef.current = new MediaRecorder(stream);
     mediaRecorderRef.current.ondataavailable = (event) => {
-      setAudioBlob(event.data);
-      setAudioUrl(URL.createObjectURL(event.data));
+      dispatch({
+        type: "START_RECORD",
+        audioBlob: event.data,
+        audioUrl: URL.createObjectURL(event.data),
+      });
     };
     mediaRecorderRef.current.start();
-    setIsRecording(true);
+    dispatch({ type: "SET_IS_RECORDING", isRecording: true });
   } catch (error) {
     console.error("Error accessing the microphone", error);
   }
@@ -45,14 +46,10 @@ export const toastOptions = {
   transition: Zoom,
 };
 
-export const stopRecording = (
-  mediaRecorderRef,
-  mediaStreamRef,
-  setIsRecording,
-) => {
+export const stopRecording = (mediaRecorderRef, mediaStreamRef, dispatch) => {
   if (mediaRecorderRef.current) {
     mediaRecorderRef.current.stop();
-    setIsRecording(false);
+    dispatch({ type: "STOP_RECORD", isRecording: false });
   }
   if (mediaStreamRef.current) {
     mediaStreamRef.current.getTracks().forEach((track) => track.stop());

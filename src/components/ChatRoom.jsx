@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ToastContainer, toast } from "react-toastify";
+import { useRef, useState } from "react";
+import { useParams } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
 import io from "socket.io-client";
-import axios from "axios";
+import { motion } from "framer-motion";
 
 import { BsSend } from "react-icons/bs";
 import { FaFilePdf, FaCircleStop } from "react-icons/fa6";
@@ -14,6 +14,7 @@ import { AiFillAudio } from "react-icons/ai";
 
 import { ring2 } from "ldrs";
 import { waveform } from "ldrs";
+
 import AudioPlayer from "./AudioPlayer";
 import {
   handleTabFocus,
@@ -21,178 +22,47 @@ import {
   stopRecording,
   toastOptions,
 } from "../utils";
-
+import useSendMessage from "../hooks/useSendMessage";
+import useTabManager from "../hooks/useTabManager";
+import useRoomManager from "../hooks/useRoomManager";
+import useScrollToBottom from "../hooks/useScrollToBottom";
+import { useMutation } from "@tanstack/react-query";
+import { sendFile } from "../utils/sendFile";
+import { sendAudio } from "../utils/sendAudio";
+import getRandomColor from "../utils/randomColor";
 waveform.register();
-
 ring2.register();
 
 const socket = io(import.meta.env.VITE_API_URL, { transports: ["websocket"] });
 
 function ChatRoom() {
+  const { state, dispatch } = useSendMessage();
   const { roomId } = useParams();
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
   const [name, setName] = useState("");
   const [isNameSet, setIsNameSet] = useState(false);
-  const [file, setFile] = useState(null);
-  const [filePreview, setFilePreview] = useState("");
   const lastMessageRef = useRef(null);
-  const [loading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
-  const [audioBlob, setAudioBlob] = useState(null);
-  const [audioUrl, setAudioUrl] = useState(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [tabId] = useState(() => Date.now());
+  const nameColors = {};
 
-  useEffect(() => {
-    const setActiveTab = () => {
-      localStorage.setItem("activeTab", String(tabId));
-      handleTabFocus(socket, tabId);
-    };
+  useTabManager(state.tabId, socket, handleTabFocus);
+  useRoomManager(socket, roomId, name, isNameSet, setMessages);
+  useScrollToBottom(messages, lastMessageRef);
 
-    window.addEventListener("focus", setActiveTab);
-    window.addEventListener("storage", (event) => {
-      if (event.key === "activeTab" && event.newValue !== String(tabId)) {
-        if (socket.connected) {
-          socket.disconnect();
-          toast.error("chatroom is opened in another tab", toastOptions);
-          setTimeout(() => {
-            navigate("/");
-          }, 3200);
-          console.log(
-            "Socket disconnected in this tab due to another tab being active.",
-          );
-        }
-      }
-    });
-
-    return () => {
-      window.removeEventListener("focus", setActiveTab);
-      socket.disconnect();
-    };
-  }, [tabId]);
-
-  useEffect(() => {
-    if (isNameSet) {
-      socket.emit("join-room", { roomId, name });
-
-      socket.on("error", (error) => {
-        toast.error(error.message, toastOptions);
-        setTimeout(() => {
-          navigate("/");
-        }, 3200);
-      });
-
-      socket.on("room-deleted", () => {
-        toast.info("Room has been deleted due to inactivity.", toastOptions);
-        setTimeout(() => {
-          navigate("/");
-        }, 3200);
-      });
-
-      socket.on("chat-history", (messages) => setMessages(messages));
-      socket.on("chat-message", (messages) => setMessages(messages));
-      socket.on("user-joined", (notification) => {
-        toast.info(notification.message, toastOptions);
-      });
-      socket.on("user-left", (notification) => {
-        toast.info(notification.message, toastOptions);
-      });
-
-      return () => {
-        socket.off("chat-history");
-        socket.off("chat-message");
-        socket.off("user-joined");
-        socket.off("user-left");
-      };
-    }
-
-    const handleBeforeUnload = (event) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [roomId, isNameSet, name, navigate]);
-
-  useEffect(() => {
-    if (lastMessageRef.current) {
-      lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, lastMessageRef]);
-
-  const startRecord = () => {
-    startRecording(
-      mediaStreamRef,
-      mediaRecorderRef,
-      setAudioBlob,
-      setAudioUrl,
-      setIsRecording,
-    );
-  };
-
-  const stopRecord = () => {
-    stopRecording(mediaRecorderRef, mediaStreamRef, setIsRecording);
-  };
-
-  const sendMessage = async () => {
-    if (input.trim() || file || audioBlob) {
+  const { mutate, isPending } = useMutation({
+    mutationFn: async ({ input, file, audioBlob }) => {
       let fileUrl = "";
       let audioUrl = "";
-      setIsLoading(true);
 
       if (file) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("upload_preset", "your_upload_preset");
-
-        try {
-          const { data } = await axios.post(
-            `${import.meta.env.VITE_API_URL}/upload`,
-            formData,
-          );
-          if (data) {
-            socket.emit("upload-media", {
-              publicId: data.publicId,
-            });
-          }
-
-          fileUrl = data.url;
-        } catch (error) {
-          console.error("Error uploading file:", error);
-        } finally {
-          setFile(null);
-          setFilePreview("");
-          setIsLoading(false);
-        }
+        const res = await sendFile(file, socket);
+        fileUrl = res.url;
       }
 
       if (audioBlob) {
-        const formData = new FormData();
-        formData.append("file", audioBlob, "voice_note.webm");
-        try {
-          const { data } = await axios.post(
-            `${import.meta.env.VITE_API_URL}/upload`,
-            formData,
-          );
-
-          if (data) {
-            socket.emit("upload-media", {
-              publicId: data.publicId,
-            });
-          }
-
-          audioUrl = data.url;
-        } catch (error) {
-          console.error("Error starting recording:", error);
-        } finally {
-          setIsRecording(false);
-        }
+        const res = await sendAudio(audioBlob, socket);
+        audioUrl = res.url;
       }
 
       const message = {
@@ -202,14 +72,45 @@ function ChatRoom() {
         file: fileUrl,
         audio: audioUrl,
       };
+
       socket.emit("chat-message", message);
       setMessages((prevMessages) => [...prevMessages, message]);
-      setInput("");
-      setFile(null);
-      setFilePreview("");
-      setIsLoading(false);
-      setAudioBlob(null);
-      setAudioUrl("");
+
+      return true;
+    },
+    onSettled: () => {
+      dispatch({
+        type: "SEND_MESSAGE",
+        file: null,
+        filePreview: null,
+        audioBlob: null,
+        audioUrl: null,
+        input: "",
+      });
+    },
+  });
+
+  const startRecord = () => {
+    startRecording(mediaStreamRef, mediaRecorderRef, dispatch);
+  };
+
+  const stopRecord = () => {
+    stopRecording(mediaRecorderRef, mediaStreamRef, dispatch);
+  };
+
+  const sendMessage = () => {
+    if (state.input || state.file || state.audioBlob) {
+      mutate({
+        input: state.input,
+        file: state.file,
+        audioBlob: state.audioBlob,
+      });
+    }
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter") {
+      sendMessage();
     }
   };
 
@@ -222,8 +123,11 @@ function ChatRoom() {
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      setFile(selectedFile);
-      setFilePreview(URL.createObjectURL(selectedFile));
+      dispatch({
+        type: "HANDLE_FILE_CHANGE",
+        file: selectedFile,
+        filePreview: URL.createObjectURL(selectedFile),
+      });
     }
   };
 
@@ -257,8 +161,17 @@ function ChatRoom() {
           <div className="messages">
             {messages.map((msg, index) => {
               const me = name === msg.name;
+              const isLastFromSameSender =
+                index === messages.length - 1 ||
+                messages[index + 1].name !== msg.name;
+              if (!nameColors[msg.name]) {
+                nameColors[msg.name] = getRandomColor();
+              }
               return (
-                <div
+                <motion.div
+                  initial={{ opacity: 0.5, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
                   className={me ? "self-end flex flex-col" : "self-start"}
                   key={index}
                   ref={lastMessageRef}
@@ -292,10 +205,17 @@ function ChatRoom() {
                       <IoMdDownload size={20} color="gray" />
                     </a>
                   )}
-                  <i className="self-end text-gray-400 mr-2 text-[0.8rem]">
-                    {msg.name}
-                  </i>
-                </div>
+                  {isLastFromSameSender && (
+                    <i
+                      className="self-end text-gray-400 mr-2 text-[0.8rem]"
+                      style={{
+                        color: nameColors[msg.name],
+                      }}
+                    >
+                      {msg.name}
+                    </i>
+                  )}
+                </motion.div>
               );
             })}
           </div>
@@ -310,8 +230,11 @@ function ChatRoom() {
               <input
                 className="text"
                 type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
+                value={state.input}
+                onChange={(e) =>
+                  dispatch({ type: "SET_INPUT", input: e.target.value })
+                }
+                onKeyDown={handleKeyDown}
                 placeholder="Type a message"
               />
               <input
@@ -321,7 +244,7 @@ function ChatRoom() {
                 onChange={handleFileChange}
               />
               <div className="flex items-center justify-center">
-                {isRecording && (
+                {state.isRecording && (
                   <l-waveform
                     size="18"
                     stroke="3.5"
@@ -331,7 +254,7 @@ function ChatRoom() {
                 )}
               </div>
               <div>
-                {isRecording ? (
+                {state.isRecording ? (
                   <FaCircleStop
                     size={20}
                     color="red"
@@ -346,8 +269,8 @@ function ChatRoom() {
                   />
                 )}
               </div>
-              <button onClick={sendMessage} disabled={loading}>
-                {loading ? (
+              <button onClick={sendMessage} disabled={isPending}>
+                {isPending ? (
                   <l-ring-2
                     size="20"
                     stroke="5"
@@ -362,9 +285,9 @@ function ChatRoom() {
               </button>
             </div>
           </div>
-          {filePreview && (
+          {state.filePreview && (
             <div>
-              {file.type.includes("application/") ? (
+              {state.file.type.includes("application/") ? (
                 <div className="attachment-file">
                   <div className="attachment-inner">
                     <p>Document</p>
@@ -374,8 +297,10 @@ function ChatRoom() {
                       className="cancel"
                       size={10}
                       onClick={() => {
-                        setFile(null);
-                        setFilePreview("");
+                        dispatch({
+                          type: "SET_FILE_PREVIEW",
+                          filePreview: null,
+                        });
                       }}
                     />
                   </div>
@@ -384,7 +309,7 @@ function ChatRoom() {
                 <div className="attachment">
                   <div className="attachment-inner">
                     <img
-                      src={filePreview}
+                      src={state.filePreview}
                       alt="file preview"
                       className="max-w-xs"
                     />
@@ -393,8 +318,10 @@ function ChatRoom() {
                       className="cancel"
                       size={10}
                       onClick={() => {
-                        setFile(null);
-                        setFilePreview("");
+                        dispatch({
+                          type: "SET_FILE_PREVIEW",
+                          filePreview: null,
+                        });
                       }}
                     />
                   </div>
@@ -402,17 +329,16 @@ function ChatRoom() {
               )}
             </div>
           )}
-          {audioUrl && (
+          {state.audioUrl && (
             <div className="attachment-file">
               <div className="attachment-inner">
-                <AudioPlayer url={audioUrl} />
+                <AudioPlayer url={state.audioUrl} />
                 <FaTimes
                   color="red"
                   className="cancel"
                   size={10}
                   onClick={() => {
-                    setAudioBlob(null);
-                    setAudioUrl("");
+                    dispatch({ type: "SET_AUDIO_URL", audioUrl: null });
                   }}
                 />
               </div>
