@@ -133,220 +133,225 @@ function ChatRoom() {
 
   return (
     <div className="chatroom">
-      <div className="top-wrapper">
-        <div className="top">
-          <div className="svg">
-            <PiLinkBold size={30} color="yellow" />
-          </div>
-          <div>
-            <p className="chat">Chat Room</p>
-            {roomId}
-          </div>
-        </div>
-      </div>
-      {!isNameSet ? (
-        <div className="name-input">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Enter your name"
-          />
-          <button className="join" onClick={handleNameSubmit}>
-            Join Chat
-          </button>
-        </div>
-      ) : (
-        <div className="inview">
-          <div className="messages">
-            {messages.map((msg, index) => {
-              const me = name === msg.name;
-              const isLastFromSameSender =
-                index === messages.length - 1 ||
-                messages[index + 1].name !== msg.name;
-              if (!nameColors[msg.name]) {
-                nameColors[msg.name] = getRandomColor();
-              }
-              return (
-                <motion.div
-                  initial={{ opacity: 0.5, y: 40 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className={me ? "self-end flex flex-col" : "self-start"}
-                  key={index}
-                  ref={lastMessageRef}
-                >
-                  {msg.message && (
-                    <p className={me ? "me" : "others"}>{msg.message}</p>
-                  )}
-                  {msg.file && msg.file.includes("/image") && (
-                    <div
-                      className={
-                        me ? ` imageside align-right` : ` imageside align-left`
-                      }
-                    >
-                      <a href={msg.file} target="_blank">
-                        <img className="" src={msg.file} />
-                      </a>
-                    </div>
-                  )}
-
-                  {msg.audio && msg.audio.includes(".webm") && (
-                    <AudioPlayer url={msg.audio} current={me} />
-                  )}
-                  {msg.file && msg.file.includes("/raw") && (
-                    <a
-                      href={msg.file}
-                      download
-                      target="_blank"
-                      className="px-4 py-2 bg-gray-200 rounded-xl flex items-center justify-between"
-                    >
-                      <FaFilePdf size={20} color="gray" />
-                      <IoMdDownload size={20} color="gray" />
-                    </a>
-                  )}
-                  {isLastFromSameSender && (
-                    <i
-                      className="self-end text-gray-400 mr-2 text-[0.8rem]"
-                      style={{
-                        color: nameColors[msg.name],
-                      }}
-                    >
-                      {msg.name}
-                    </i>
-                  )}
-                </motion.div>
-              );
-            })}
-          </div>
-
-          <div className="inputs">
-            <div className="input-wrapper">
-              <label htmlFor="file" style={{ cursor: "pointer" }}>
-                <div>
-                  <IoMdAttach size={20} />
-                </div>
-              </label>
-              <input
-                className="text"
-                type="text"
-                value={state.input}
-                onChange={(e) =>
-                  dispatch({ type: "SET_INPUT", input: e.target.value })
-                }
-                onKeyDown={handleKeyDown}
-                placeholder="Type a message"
-              />
-              <input
-                id="file"
-                className="file"
-                type="file"
-                onChange={handleFileChange}
-              />
-              <div className="flex items-center justify-center">
-                {state.isRecording && (
-                  <l-waveform
-                    size="18"
-                    stroke="3.5"
-                    speed="0.8"
-                    color="red"
-                  ></l-waveform>
-                )}
-              </div>
-              <div>
-                {state.isRecording ? (
-                  <FaCircleStop
-                    size={20}
-                    color="red"
-                    onClick={stopRecord}
-                    className="cursor-pointer"
-                  />
-                ) : (
-                  <AiFillAudio
-                    size={20}
-                    onClick={startRecord}
-                    className="cursor-pointer"
-                  />
-                )}
-              </div>
-              <button onClick={sendMessage} disabled={isPending}>
-                {isPending ? (
-                  <l-ring-2
-                    size="20"
-                    stroke="5"
-                    stroke-length="0.25"
-                    bg-opacity="0.1"
-                    speed="1"
-                    color="black"
-                  ></l-ring-2>
-                ) : (
-                  <BsSend />
-                )}
-              </button>
+      <div className="room">
+        <div className="top-wrapper">
+          <div className="top">
+            <div className="svg">
+              <PiLinkBold size={30} color="yellow" />
             </div>
-          </div>
-          {state.filePreview && (
             <div>
-              {state.file.type.includes("application/") ? (
-                <div className="attachment-file">
-                  <div className="attachment-inner">
-                    <p>Document</p>
-                    <IoDocumentAttachSharp />
-                    <FaTimes
-                      color="red"
-                      className="cancel"
-                      size={10}
-                      onClick={() => {
-                        dispatch({
-                          type: "SET_FILE_PREVIEW",
-                          filePreview: null,
-                        });
-                      }}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="attachment">
-                  <div className="attachment-inner">
-                    <img
-                      src={state.filePreview}
-                      alt="file preview"
-                      className="max-w-xs"
-                    />
-                    <FaTimes
-                      color="red"
-                      className="cancel"
-                      size={10}
-                      onClick={() => {
-                        dispatch({
-                          type: "SET_FILE_PREVIEW",
-                          filePreview: null,
-                        });
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
+              <p className="chat">Chat Room</p>
+              {roomId}
             </div>
-          )}
-          {state.audioUrl && (
-            <div className="attachment-file">
-              <div className="attachment-inner">
-                <AudioPlayer url={state.audioUrl} />
-                <FaTimes
-                  color="red"
-                  className="cancel"
-                  size={10}
-                  onClick={() => {
-                    dispatch({ type: "SET_AUDIO_URL", audioUrl: null });
-                  }}
+          </div>
+        </div>
+        {!isNameSet ? (
+          <div className="name-input">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your name"
+            />
+            <button className="join" onClick={handleNameSubmit}>
+              Join Chat
+            </button>
+          </div>
+        ) : (
+          <div className="inview">
+            <div className="messages">
+              {messages.map((msg, index) => {
+                const me = name === msg.name;
+                const isLastFromSameSender =
+                  index === messages.length - 1 ||
+                  messages[index + 1].name !== msg.name;
+                if (!nameColors[msg.name]) {
+                  nameColors[msg.name] = getRandomColor();
+                }
+                return (
+                  <motion.div
+                    initial={{ opacity: 0.5, y: 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className={me ? "self-end flex flex-col" : "self-start"}
+                    key={index}
+                    ref={lastMessageRef}
+                  >
+                    {msg.message && (
+                      <p className={me ? "me" : "others"}>{msg.message}</p>
+                    )}
+                    {msg.file && msg.file.includes("/image") && (
+                      <div
+                        className={
+                          me
+                            ? ` imageside align-right`
+                            : ` imageside align-left`
+                        }
+                      >
+                        <a href={msg.file} target="_blank">
+                          <img className="" src={msg.file} />
+                        </a>
+                      </div>
+                    )}
+
+                    {msg.audio && msg.audio.includes(".webm") && (
+                      <AudioPlayer url={msg.audio} current={me} />
+                    )}
+                    {msg.file && msg.file.includes("/raw") && (
+                      <a
+                        href={msg.file}
+                        download
+                        target="_blank"
+                        className="px-4 py-2 bg-gray-200 rounded-xl flex items-center justify-between"
+                      >
+                        <FaFilePdf size={20} color="gray" />
+                        <IoMdDownload size={20} color="gray" />
+                      </a>
+                    )}
+                    {isLastFromSameSender && (
+                      <i
+                        className="self-end text-gray-400 mr-2 text-[0.8rem]"
+                        style={{
+                          fontWeight: "bold",
+                          color: nameColors[msg.name],
+                        }}
+                      >
+                        {msg.name}
+                      </i>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            <div className="inputs">
+              <div className="input-wrapper">
+                <label htmlFor="file" style={{ cursor: "pointer" }}>
+                  <div>
+                    <IoMdAttach size={20} />
+                  </div>
+                </label>
+                <input
+                  className="text"
+                  type="text"
+                  value={state.input}
+                  onChange={(e) =>
+                    dispatch({ type: "SET_INPUT", input: e.target.value })
+                  }
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type a message"
                 />
+                <input
+                  id="file"
+                  className="file"
+                  type="file"
+                  onChange={handleFileChange}
+                />
+                <div className="flex items-center justify-center">
+                  {state.isRecording && (
+                    <l-waveform
+                      size="18"
+                      stroke="3.5"
+                      speed="0.8"
+                      color="red"
+                    ></l-waveform>
+                  )}
+                </div>
+                <div>
+                  {state.isRecording ? (
+                    <FaCircleStop
+                      size={20}
+                      color="red"
+                      onClick={stopRecord}
+                      className="cursor-pointer"
+                    />
+                  ) : (
+                    <AiFillAudio
+                      size={20}
+                      onClick={startRecord}
+                      className="cursor-pointer"
+                    />
+                  )}
+                </div>
+                <button onClick={sendMessage} disabled={isPending}>
+                  {isPending ? (
+                    <l-ring-2
+                      size="20"
+                      stroke="5"
+                      stroke-length="0.25"
+                      bg-opacity="0.1"
+                      speed="1"
+                      color="black"
+                    ></l-ring-2>
+                  ) : (
+                    <BsSend />
+                  )}
+                </button>
               </div>
             </div>
-          )}
-        </div>
-      )}
-      <ToastContainer {...toastOptions} />
+            {state.filePreview && (
+              <div>
+                {state.file.type.includes("application/") ? (
+                  <div className="attachment-file">
+                    <div className="attachment-inner">
+                      <p>Document</p>
+                      <IoDocumentAttachSharp />
+                      <FaTimes
+                        color="red"
+                        className="cancel"
+                        size={10}
+                        onClick={() => {
+                          dispatch({
+                            type: "SET_FILE_PREVIEW",
+                            filePreview: null,
+                          });
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="attachment">
+                    <div className="attachment-inner">
+                      <img
+                        src={state.filePreview}
+                        alt="file preview"
+                        className="max-w-xs"
+                      />
+                      <FaTimes
+                        color="red"
+                        className="cancel"
+                        size={10}
+                        onClick={() => {
+                          dispatch({
+                            type: "SET_FILE_PREVIEW",
+                            filePreview: null,
+                          });
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {state.audioUrl && (
+              <div className="attachment-file">
+                <div className="attachment-inner">
+                  <AudioPlayer url={state.audioUrl} />
+                  <FaTimes
+                    color="red"
+                    className="cancel"
+                    size={10}
+                    onClick={() => {
+                      dispatch({ type: "SET_AUDIO_URL", audioUrl: null });
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        <ToastContainer {...toastOptions} />
+      </div>
     </div>
   );
 }
